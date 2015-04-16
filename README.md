@@ -1,9 +1,8 @@
-# OAuth 2.0 Client
+This is a STANDALONE SIMPLIFIED fork of https://github.com/thephpleague/oauth2-client/
 
-[![Build Status](https://travis-ci.org/thephpleague/oauth2-client.svg?branch=master)](https://travis-ci.org/thephpleague/oauth2-client)
-[![Coverage Status](https://coveralls.io/repos/thephpleague/oauth2-client/badge.svg?branch=master)](https://coveralls.io/r/thephpleague/oauth2-client?branch=master)
-[![Latest Stable Version](https://poser.pugx.org/league/oauth2-client/version.svg)](https://packagist.org/packages/league/oauth2-client)
-[![Total Downloads](https://poser.pugx.org/league/oauth2-client/downloads.svg)](https://packagist.org/packages/league/oauth2-client)
+cURL is used instead of Guzzle, some useless wrapper code is removed. Tests still pass.
+
+# OAuth 2.0 Client
 
 This package makes it stupidly simple to integrate your application with OAuth 2.0 identity providers.
 
@@ -12,14 +11,6 @@ integration is an important feature of most web-apps these days. Many of these s
 
 It will work with any OAuth 2.0 provider (be it an OAuth 2.0 Server for your own API or Facebook) and provides support
 for popular systems out of the box. This package abstracts out some of the subtle but important differences between various providers, handles access tokens and refresh tokens, and allows you easy access to profile information on these other sites.
-
-This package is compliant with [PSR-1][], [PSR-2][] and [PSR-4][]. If you notice compliance oversights, please send
-a patch via pull request.
-
-[PSR-1]: https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-1-basic-coding-standard.md
-[PSR-2]: https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-2-coding-style-guide.md
-[PSR-4]: https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-4-autoloader.md
-
 
 ## Requirements
 
@@ -36,45 +27,47 @@ The following versions of PHP are supported.
 ### Authorization Code Flow
 
 ```php
-$provider = new League\OAuth2\Client\Provider\<ProviderName>([
+$provider = new \OAuth2\<ProviderName>([
     'clientId'      => 'XXXXXXXX',
     'clientSecret'  => 'XXXXXXXX',
     'redirectUri'   => 'https://your-registered-redirect-uri/',
     'scopes'        => ['email', '...', '...'],
 ]);
 
-if (!isset($_GET['code'])) {
-
+if (!isset($_GET['code']))
+{
     // If we don't have an authorization code then get one
     $authUrl = $provider->getAuthorizationUrl();
     $_SESSION['oauth2state'] = $provider->state;
     header('Location: '.$authUrl);
     exit;
-
-// Check given state against previously stored one to mitigate CSRF attack
-} elseif (empty($_GET['state']) || ($_GET['state'] !== $_SESSION['oauth2state'])) {
-
+}
+elseif (empty($_GET['state']) || ($_GET['state'] !== $_SESSION['oauth2state']))
+{
+    // Check given state against previously stored one to mitigate CSRF attack
     unset($_SESSION['oauth2state']);
     exit('Invalid state');
-
-} else {
-
+}
+else
+{
     // Try to get an access token (using the authorization code grant)
     $token = $provider->getAccessToken('authorization_code', [
         'code' => $_GET['code']
     ]);
 
     // Optional: Now you have a token you can look up a users profile data
-    try {
-
+    try
+    {
         // We got an access token, let's now get the user's details
         $userDetails = $provider->getUserDetails($token);
 
         // Use these details to create a new profile
-        printf('Hello %s!', $userDetails->firstName);
+        printf('Hello %s!', $userDetails['firstname']);
 
-    } catch (Exception $e) {
-
+        var_dump($userDetails);
+    }
+    catch (Exception $e)
+    {
         // Failed to get user details
         exit('Oh dear...');
     }
@@ -93,16 +86,14 @@ if (!isset($_GET['code'])) {
 ### Refreshing a Token
 
 ```php
-$provider = new League\OAuth2\Client\Provider\<ProviderName>([
+$provider = new \OAuth2\<ProviderName>([
     'clientId'      => 'XXXXXXXX',
     'clientSecret'  => 'XXXXXXXX',
     'redirectUri'   => 'https://your-registered-redirect-uri/',
 ]);
 
-$grant = new \League\OAuth2\Client\Grant\RefreshToken();
-$token = $provider->getAccessToken($grant, ['refresh_token' => $refreshToken]);
+$token = $provider->getAccessToken('refresh_token', ['refresh_token' => $refreshToken]);
 ```
-
 
 ### Built-In Providers
 
@@ -147,14 +138,14 @@ so please help them out with a pull request if you notice this.
 ### Implementing your own provider
 
 If you are working with an oauth2 service not supported out-of-the-box or by an existing package, it is quite simple to
-implement your own. Simply extend `League\OAuth2\Client\Provider\AbstractProvider` and implement the required abstract
+implement your own. Simply extend `\OAuth2\AbstractProvider` and implement the required abstract
 methods:
 
 ```php
 abstract public function urlAuthorize();
 abstract public function urlAccessToken();
-abstract public function urlUserDetails(\League\OAuth2\Client\Token\AccessToken $token);
-abstract public function userDetails($response, \League\OAuth2\Client\Token\AccessToken $token);
+abstract public function urlUserDetails(\OAuth2\AccessToken $token);
+abstract public function userDetails($response, \OAuth2\AccessToken $token);
 ```
 
 Each of these abstract methods contain a docblock defining their expectations and typical behaviour. Once you have
@@ -173,18 +164,12 @@ provider you would add a property:
 public $uidKey = 'accountId';
 ```
 
-### Client Packages
-
-Some developers use this library as a base for their own PHP API wrappers, and that seems like a really great idea. It might make it slightly tricky to integrate their provider with an existing generic "OAuth 2.0 All the Things" login system, but it does make working with them easier.
-
-- [Sniply](https://github.com/younes0/sniply)
-
 ## Install
 
 Via Composer
 
 ``` bash
-$ composer require league/oauth2-client
+$ composer require vitalif/oauth2-client
 ```
 
 ## Testing
@@ -193,13 +178,9 @@ $ composer require league/oauth2-client
 $ ./vendor/bin/phpunit
 ```
 
-## Contributing
-
-Please see [CONTRIBUTING](https://github.com/thephpleague/oauth2-client/blob/master/CONTRIBUTING.md) for details.
-
-
 ## Credits
 
+- [Vitaliy Filippov](https://github.com/vitalif) - this simplified version
 - [Alex Bilbie](https://github.com/alexbilbie)
 - [Ben Corlett](https://github.com/bencorlett)
 - [James Mills](https://github.com/jamesmills)
@@ -207,7 +188,6 @@ Please see [CONTRIBUTING](https://github.com/thephpleague/oauth2-client/blob/mas
 - [Tom Anderson](https://github.com/TomHAnderson)
 - [All Contributors](https://github.com/thephpleague/oauth2-client/contributors)
 
-
 ## License
 
-The MIT License (MIT). Please see [License File](https://github.com/thephpleague/oauth2-client/blob/master/LICENSE) for more information.
+The MIT License (MIT). Please see [License File](https://github.com/vitalif/oauth2-client/blob/master/LICENSE) for more information.
