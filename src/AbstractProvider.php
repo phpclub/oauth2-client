@@ -159,7 +159,7 @@ abstract class AbstractProvider implements ProviderInterface
         if (strtoupper($this->method) == 'POST')
         {
             curl_setopt_array($curl, [
-                CURLOPT_URL => $this->urlAccessToken(),
+                CURLOPT_URL => ($url = $this->urlAccessToken()),
                 CURLOPT_POST => 1,
                 CURLOPT_HTTPHEADER => $this->getHeaders(),
                 CURLOPT_POSTFIELDS => http_build_query($requestParams),
@@ -170,12 +170,15 @@ abstract class AbstractProvider implements ProviderInterface
         {
             // No providers included with this library use get but 3rd parties may
             curl_setopt_array($curl, [
-                CURLOPT_URL => $this->urlAccessToken() . '?' . http_build_query($requestParams),
+                CURLOPT_URL => ($url = $this->urlAccessToken() . '?' . http_build_query($requestParams)),
                 CURLOPT_HTTPHEADER => $this->getHeaders(),
                 CURLOPT_RETURNTRANSFER => true,
             ]);
         }
         $response = curl_exec($curl);
+        $code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $errno = curl_errno($curl);
+        $error = curl_error($curl);
         curl_close($curl);
 
         switch ($this->responseType)
@@ -197,6 +200,11 @@ abstract class AbstractProvider implements ProviderInterface
         {
             // OAuth 2.0 Draft 10 style
             throw new \Exception($result['error']);
+        }
+        elseif (!$result)
+        {
+            // cURL?
+            throw new \Exception($url . ' returned: ' . ($code ? "HTTP $code, content: $response" : "cURL: $errno $error"));
         }
 
         $result = $this->prepareAccessTokenResult($result);
@@ -261,12 +269,14 @@ abstract class AbstractProvider implements ProviderInterface
             CURLOPT_HTTPHEADER => $headers,
             CURLOPT_RETURNTRANSFER => true,
         ]);
+        $errno = curl_errno($curl);
+        $error = curl_error($curl);
         $response = curl_exec($curl);
         $status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
         curl_close($curl);
         if ($status != 200)
         {
-            throw new \Exception($response);
+            throw new \Exception($url . ' returned: ' . ($status ? "HTTP $status, content: $response" : "cURL: $errno $error"));
         }
         return $response;
     }

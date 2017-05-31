@@ -34,6 +34,19 @@ $provider = new \OAuth2\<ProviderName>([
     'scopes'        => ['email', '...', '...'],
 ]);
 
+// For example, with simplest GenericProvider and Keycloak
+$provider = new \OAuth2\GenericProvider([
+    'clientId'      => 'XXXXXXXX',
+    'clientSecret'  => 'XXXXXXXX',
+    'urlAuthorize'   => 'http://keycloak-server/auth/realms/example/protocol/openid-connect/auth',
+    'urlAccessToken' => 'http://keycloak-server/auth/realms/example/protocol/openid-connect/token',
+    'urlUserDetails' => 'http://keycloak-server/auth/realms/example/protocol/openid-connect/userinfo',
+    'scopes'         => ['name', 'email'],
+]);
+
+$useJWT = false;
+$jwksEndpointURL = '';
+
 if (!isset($_GET['code']))
 {
     // If we don't have an authorization code then get one
@@ -58,8 +71,21 @@ else
     // Optional: Now you have a token you can look up a users profile data
     try
     {
-        // We got an access token, let's now get the user's details
-        $userDetails = $provider->getUserDetails($token);
+        if (!$useJWT)
+        {
+            // We got an access token, let's now get the user's details
+            $userDetails = $provider->getUserDetails($token);
+        }
+        else
+        {
+            // If your tokens are JWT (JSON Web Tokens) (Keycloak's ones are),
+            // you may decode and verify them instead of fetching user details from server
+            $keys = \OAuth2\JWT::extractKeys(json_decode(file_get_contents($jwksEndpointURL), true));
+            $userDetails = JWT::decode($token->accessToken, $keys);
+
+            // You may also just decode it without verifying
+            $userDetails = JWT::decode($token->accessToken, NULL);
+        }
 
         // Use these details to create a new profile
         printf('Hello %s!', $userDetails['firstname']);
@@ -99,6 +125,7 @@ $token = $provider->getAccessToken('refresh_token', ['refresh_token' => $refresh
 
 This package currently has built-in support for:
 
+- Basic GenericProvider suitable for any OAuth2 server
 - Eventbrite
 - Facebook
 - Github
